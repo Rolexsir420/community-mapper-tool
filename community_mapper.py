@@ -24,8 +24,7 @@ app = Client(
     "mapper",
     api_id=API_ID,
     api_hash=API_HASH,
-    session_string=SESSION_STRING,
-    no_updates=False
+    session_string=SESSION_STRING
 )
 
 MY_ID = None
@@ -257,12 +256,4 @@ async def handle_scan(client: Client, message: Message):
     )
 
 # ── entry point ───────────────────────────────────────────────────────
-async def launch():
-    await app.start()
-    await on_start(app)
-    print("Bot is running — waiting for commands...")
-    while True:
-        await asyncio.sleep(30)
-        print("Bot alive...")
-
-asyncio.run(launch())
+app.run(on_start(app))
