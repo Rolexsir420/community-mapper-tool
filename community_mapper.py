@@ -4,10 +4,9 @@ import io
 import os
 from datetime import datetime
 
-import pyrogram
 import pytz
 from dotenv import load_dotenv
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters
 from pyrogram.errors import FloodWait
 from pyrogram.types import Message
 
@@ -28,10 +27,14 @@ app = Client(
     session_string=SESSION_STRING
 )
 
+MY_ID = None  # will be set on startup
+
 # ── startup confirmation ──────────────────────────────────────────────
 async def on_start(client: Client):
+    global MY_ID
     try:
         me = await client.get_me()
+        MY_ID = me.id  # store your own ID
 
         async for dialog in client.get_dialogs():
             pass
@@ -76,38 +79,4 @@ async def fetch_senders(client: Client, group_id: int, limit: int) -> dict:
             if sender.is_bot:
                 continue
 
-            if not sender.first_name and not sender.username:
-                continue
-
-            processed_ids.add(sender_id)
-            found_users[sender_id] = {
-                "uid": sender_id,
-                "username": sender.username or "N/A",
-                "name": f"{sender.first_name or ''} {sender.last_name or ''}".strip(),
-                "group_name": chat_title,
-                "group_id": group_id,
-                "group_link": chat_url
-            }
-
-            await asyncio.sleep(0.05)
-
-    except FloodWait as fw:
-        await asyncio.sleep(fw.value + 2)
-        return await fetch_senders(client, group_id, limit)
-
-    except Exception as err:
-        await client.send_message(LOG_CHANNEL,
-            f"⚠️ Error scanning `{group_id}`: {err}")
-        return {}
-
-    if not found_users:
-        await client.send_message(LOG_CHANNEL,
-            f"⚠️ `{chat_title}` returned no data — empty or restricted")
-
-    return found_users
-
-# ── staggered parallel scanning ───────────────────────────────────────
-async def run_parallel_scan(client: Client, chat_ids: list, msg_limit: int) -> list:
-    job_list = []
-    for idx, cid in enumerate(chat_ids):
-        await asyncio.sleep(idx * 2)
+            if not
