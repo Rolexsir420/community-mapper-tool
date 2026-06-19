@@ -256,4 +256,9 @@ async def handle_scan(client: Client, message: Message):
     )
 
 # ── entry point ───────────────────────────────────────────────────────
-app.run(on_start(app))
+async def main():
+    async with app:
+        await on_start(app)
+        await asyncio.Future()
+
+app.run(main())
