@@ -27,17 +27,26 @@ app = Client(
     session_string=SESSION_STRING
 )
 
-MY_ID = None  # will be set on startup
+MY_ID = None
+
+# ── keep alive loop ───────────────────────────────────────────────────
+async def keep_alive():
+    while True:
+        await asyncio.sleep(60)
+        print("Bot alive...")
 
 # ── startup confirmation ──────────────────────────────────────────────
 async def on_start(client: Client):
     global MY_ID
     try:
         me = await client.get_me()
-        MY_ID = me.id  # store your own ID
+        MY_ID = me.id
 
         async for dialog in client.get_dialogs():
             pass
+
+        await client.get_chat(LOG_CHANNEL)
+        await client.get_chat(PRIMARY_GROUP)
 
         await client.send_message(LOG_CHANNEL,
             f"✅ **Community Mapper Online**\n"
@@ -47,6 +56,7 @@ async def on_start(client: Client):
             f"🕐 Time    : {datetime.now(IST).strftime('%d %b %Y, %H:%M IST')}\n"
             f"━━━━━━━━━━━━━━━━━━━━"
         )
+        print(f"Startup complete. MY_ID={MY_ID}")
     except Exception as e:
         print(f"Startup error: {e}")
 
@@ -59,7 +69,8 @@ async def fetch_senders(client: Client, group_id: int, limit: int) -> dict:
         chat_info = await client.get_chat(group_id)
         chat_title = chat_info.title
         chat_url = f"https://t.me/{chat_info.username}" if chat_info.username else None
-    except Exception:
+    except Exception as e:
+        print(f"Cannot access group {group_id}: {e}")
         await client.send_message(LOG_CHANNEL,
             f"❌ Cannot access group `{group_id}` — skipping")
         return {}
@@ -99,6 +110,7 @@ async def fetch_senders(client: Client, group_id: int, limit: int) -> dict:
         return await fetch_senders(client, group_id, limit)
 
     except Exception as err:
+        print(f"Scan error for {group_id}: {err}")
         await client.send_message(LOG_CHANNEL,
             f"⚠️ Error scanning `{group_id}`: {err}")
         return {}
@@ -166,9 +178,10 @@ async def deliver_csv(client: Client, records: list, fname: str):
 @app.on_message(filters.command("scan", prefixes="."))
 async def handle_scan(client: Client, message: Message):
 
-    # only respond to your own messages
     if not message.from_user or message.from_user.id != MY_ID:
         return
+
+    print(f"Scan command received from {message.from_user.id}")
 
     input_args = message.command[1:]
     if not input_args:
@@ -257,6 +270,9 @@ async def launch():
     await app.start()
     await on_start(app)
     print("Bot is running — waiting for commands...")
-    await asyncio.Event().wait()
+    await asyncio.gather(
+        keep_alive(),
+        asyncio.Event().wait()
+    )
 
 asyncio.run(launch())
