@@ -32,9 +32,8 @@ async def on_start(client: Client):
     try:
         me = await client.get_me()
 
-        # force Pyrogram to learn all channels/groups before sending
         async for dialog in client.get_dialogs():
-            pass  # just iterate all — builds peer cache
+            pass
 
         await client.send_message(LOG_CHANNEL,
             f"✅ **Community Mapper Online**\n"
@@ -186,27 +185,22 @@ async def handle_scan(client: Client, message: Message):
         f"━━━━━━━━━━━━━━━━━━━━"
     )
 
-    # scan primary + all secondary with stagger
     all_chat_ids = [PRIMARY_GROUP] + target_groups
     all_scan_data = await run_parallel_scan(client, all_chat_ids, SCAN_LIMIT)
 
-    # primary is first result
     base_uids = set(all_scan_data[0].keys())
 
-    # merge secondary — no duplicate UIDs across groups
     merged_targets = {}
     for scan_result in all_scan_data[1:]:
         for uid, member in scan_result.items():
             if uid not in merged_targets:
                 merged_targets[uid] = member
 
-    # find fresh — in secondary but NOT in primary
     new_members = [
         member for uid, member in merged_targets.items()
         if uid not in base_uids
     ]
 
-    # per group breakdown for summary
     breakdown_map = {}
     for scan_result in all_scan_data[1:]:
         for uid, member in scan_result.items():
@@ -225,7 +219,6 @@ async def handle_scan(client: Client, message: Message):
 
     end_time = datetime.now(IST).strftime("%d %b %Y, %H:%M IST")
 
-    # send summary
     await client.send_message(LOG_CHANNEL,
         f"✅ **SCAN COMPLETE**\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -238,7 +231,6 @@ async def handle_scan(client: Client, message: Message):
         disable_web_page_preview=True
     )
 
-    # smart threshold
     if len(new_members) <= 30:
         for serial_no, member in enumerate(new_members, start=1):
             await post_member_log(client, member, serial_no)
@@ -246,7 +238,6 @@ async def handle_scan(client: Client, message: Message):
         await client.send_message(LOG_CHANNEL,
             f"📋 {len(new_members)} fresh members found — sending CSV only to keep channel clean")
 
-    # always send CSV
     await deliver_csv(
         client, new_members,
         f"fresh_members_{datetime.now(IST).strftime('%d%m%Y_%H%M')}.csv"
@@ -254,8 +245,9 @@ async def handle_scan(client: Client, message: Message):
 
 # ── entry point ───────────────────────────────────────────────────────
 async def launch():
-    async with app:
-        await on_start(app)
-        await asyncio.Event().wait()
+    await app.start()
+    await on_start(app)
+    print("Bot is running — waiting for commands...")
+    await asyncio.Event().wait()
 
 asyncio.run(launch())
