@@ -29,12 +29,6 @@ app = Client(
 
 MY_ID = None
 
-# ── keep alive loop ───────────────────────────────────────────────────
-async def keep_alive():
-    while True:
-        await asyncio.sleep(60)
-        print("Bot alive...")
-
 # ── startup confirmation ──────────────────────────────────────────────
 async def on_start(client: Client):
     global MY_ID
@@ -270,9 +264,8 @@ async def launch():
     await app.start()
     await on_start(app)
     print("Bot is running — waiting for commands...")
-    await asyncio.gather(
-        keep_alive(),
-        asyncio.Event().wait()
-    )
+    while True:
+        await asyncio.sleep(30)
+        print("Bot alive...")
 
 asyncio.run(launch())
