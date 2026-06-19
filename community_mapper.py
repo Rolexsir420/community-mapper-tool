@@ -24,7 +24,8 @@ app = Client(
     "mapper",
     api_id=API_ID,
     api_hash=API_HASH,
-    session_string=SESSION_STRING
+    session_string=SESSION_STRING,
+    no_updates=False
 )
 
 MY_ID = None
@@ -169,13 +170,9 @@ async def deliver_csv(client: Client, records: list, fname: str):
         caption=f"📁 {fname} — {len(records)} fresh members")
 
 # ── .scan command ─────────────────────────────────────────────────────
-@app.on_message(filters.command("scan", prefixes="."))
+@app.on_message(filters.command("scan", prefixes=".") & filters.outgoing)
 async def handle_scan(client: Client, message: Message):
-
-    if not message.from_user or message.from_user.id != MY_ID:
-        return
-
-    print(f"Scan command received from {message.from_user.id}")
+    print("Scan command received")
 
     input_args = message.command[1:]
     if not input_args:
